@@ -8,53 +8,45 @@
 
 namespace sabutay_a_countSignChanges {
 
-NesterovATestTaskSEQ::NesterovATestTaskSEQ(const InType &in) {
+SabutayACountSignChangesSEQ::SabutayACountSignChangesSEQ(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
   GetOutput() = 0;
 }
 
-bool NesterovATestTaskSEQ::ValidationImpl() {
+bool SabutayACountSignChangesSEQ::ValidationImpl() {
   return (GetInput() > 0) && (GetOutput() == 0);
 }
 
-bool NesterovATestTaskSEQ::PreProcessingImpl() {
-  GetOutput() = 2 * GetInput();
-  return GetOutput() > 0;
+bool SabutayACountSignChangesSEQ::PreProcessingImpl() {
+  GetOutput() = 0;
+  return true;
 }
 
-bool NesterovATestTaskSEQ::RunImpl() {
-  if (GetInput() == 0) {
-    return false;
+bool SabutayACountSignChangesSEQ::RunImpl() {
+  // Create a vector of size (GetInput() + 1) with alternating signs
+  std::vector<InType> vec;
+  vec.reserve(GetInput() + 1);
+
+  for (InType i = 0; i <= GetInput(); i++) {
+    vec.push_back((i % 2 == 0) ? (i + 1) : -(i + 1));
   }
 
-  for (InType i = 0; i < GetInput(); i++) {
-    for (InType j = 0; j < GetInput(); j++) {
-      for (InType k = 0; k < GetInput(); k++) {
-        std::vector<InType> tmp(i + j + k, 1);
-        GetOutput() += std::accumulate(tmp.begin(), tmp.end(), 0);
-        GetOutput() -= i + j + k;
-      }
+  // Count sign changes between adjacent elements
+  InType sign_changes = 0;
+  for (size_t i = 0; i < vec.size() - 1; i++) {
+    if ((vec[i] > 0 && vec[i + 1] < 0) || (vec[i] < 0 && vec[i + 1] > 0)) {
+      sign_changes++;
     }
   }
 
-  const int num_threads = ppc::util::GetNumThreads();
-  GetOutput() *= num_threads;
-
-  int counter = 0;
-  for (int i = 0; i < num_threads; i++) {
-    counter++;
-  }
-
-  if (counter != 0) {
-    GetOutput() /= counter;
-  }
-  return GetOutput() > 0;
+  GetOutput() = sign_changes;
+  return true;
 }
 
-bool NesterovATestTaskSEQ::PostProcessingImpl() {
-  GetOutput() -= GetInput();
-  return GetOutput() > 0;
+bool SabutayACountSignChangesSEQ::PostProcessingImpl() {
+  // No post-processing needed
+  return true;
 }
 
 }  // namespace sabutay_a_countSignChanges

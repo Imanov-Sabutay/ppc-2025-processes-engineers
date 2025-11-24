@@ -5,12 +5,12 @@
 
 namespace sabutay_a_countSignChanges {
 
-class NesterovATestTaskMPI : public BaseTask {
+class SabutayACountSignChangesMPI : public BaseTask {
  public:
   static constexpr ppc::task::TypeOfTask GetStaticTypeOfTask() {
     return ppc::task::TypeOfTask::kMPI;
   }
-  explicit NesterovATestTaskMPI(const InType &in);
+  explicit SabutayACountSignChangesMPI(const InType &in);
 
  private:
   bool ValidationImpl() override;

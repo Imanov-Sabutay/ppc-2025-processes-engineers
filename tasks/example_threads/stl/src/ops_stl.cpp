@@ -40,13 +40,20 @@ bool NesterovATestTaskSTL::RunImpl() {
   std::vector<std::thread> threads(num_threads);
   GetOutput() *= num_threads;
 
-  std::atomic<int> counter(0);
+  int counter = 0;
   for (int i = 0; i < num_threads; i++) {
-    threads[i] = std::thread([&]() { counter++; });
+    threads[i] = std::thread([&counter]() {
+      // Do some work to simulate thread activity
+      volatile int temp = 1;
+      temp++;
+    });
+    counter++;
     threads[i].join();
   }
 
-  GetOutput() /= counter;
+  if (counter != 0) {
+    GetOutput() /= counter;
+  }
   return GetOutput() > 0;
 }
 

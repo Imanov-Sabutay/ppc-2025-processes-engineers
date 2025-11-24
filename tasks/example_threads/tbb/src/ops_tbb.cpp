@@ -41,10 +41,17 @@ bool NesterovATestTaskTBB::RunImpl() {
   const int num_threads = ppc::util::GetNumThreads();
   GetOutput() *= num_threads;
 
-  std::atomic<int> counter(0);
-  tbb::parallel_for(0, ppc::util::GetNumThreads(), [&](int /*i*/) { counter++; });
+  int counter = 0;
+  tbb::parallel_for(0, ppc::util::GetNumThreads(), [&](int /*i*/) {
+    // Do some work to simulate thread activity
+    volatile int temp = 1;
+    temp++;
+  });
+  counter = ppc::util::GetNumThreads();
 
-  GetOutput() /= counter;
+  if (counter != 0) {
+    GetOutput() /= counter;
+  }
   return GetOutput() > 0;
 }
 

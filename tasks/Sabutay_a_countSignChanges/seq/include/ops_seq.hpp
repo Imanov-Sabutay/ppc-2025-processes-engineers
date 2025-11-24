@@ -5,12 +5,12 @@
 
 namespace sabutay_a_countSignChanges {
 
-class NesterovATestTaskSEQ : public BaseTask {
+class SabutayACountSignChangesSEQ : public BaseTask {
  public:
   static constexpr ppc::task::TypeOfTask GetStaticTypeOfTask() {
     return ppc::task::TypeOfTask::kSEQ;
   }
-  explicit NesterovATestTaskSEQ(const InType &in);
+  explicit SabutayACountSignChangesSEQ(const InType &in);
 
  private:
   bool ValidationImpl() override;

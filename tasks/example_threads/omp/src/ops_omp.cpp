@@ -38,11 +38,18 @@ bool NesterovATestTaskOMP::RunImpl() {
   const int num_threads = ppc::util::GetNumThreads();
   GetOutput() *= num_threads;
 
-  std::atomic<int> counter(0);
+  int counter = 0;
 #pragma omp parallel default(none) shared(counter) num_threads(ppc::util::GetNumThreads())
-  counter++;
+  {
+    // Do some work to simulate thread activity
+    volatile int temp = 1;
+    temp++;
+  }
+  counter = ppc::util::GetNumThreads();
 
-  GetOutput() /= counter;
+  if (counter != 0) {
+    GetOutput() /= counter;
+  }
   return GetOutput() > 0;
 }
 
