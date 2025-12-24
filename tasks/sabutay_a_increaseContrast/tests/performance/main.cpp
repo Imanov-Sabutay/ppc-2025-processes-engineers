@@ -7,7 +7,7 @@
 
 namespace sabutay_a_increaseContrast {
 
-class ExampleRunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InType, OutType> {
+class SabutayAPerfTest : public ppc::util::BaseRunPerfTests<InType, OutType> {
   const int kCount_ = 100;
   InType input_data_{};
 
@@ -24,17 +24,18 @@ class ExampleRunPerfTestProcesses2 : public ppc::util::BaseRunPerfTests<InType, 
   }
 };
 
-TEST_P(ExampleRunPerfTestProcesses2, RunPerfModes) {
+TEST_P(SabutayAPerfTest, RunPerfModes) {
   ExecuteTest(GetParam());
 }
 
 const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, SabutayAincreaseContrastMPI, SabutayAincreaseContrastSEQ>(PPC_SETTINGS_sabutay_a_increaseContrast);
+    ppc::util::MakeAllPerfTasks<InType, SabutayAincreaseContrastMPI, SabutayAincreaseContrastSEQ>(
+        PPC_SETTINGS_sabutay_a_increaseContrast);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 
-const auto kPerfTestName = ExampleRunPerfTestProcesses2::CustomPerfTestName;
+const auto kPerfTestName = SabutayAPerfTest::CustomPerfTestName;
 
-INSTANTIATE_TEST_SUITE_P(RunModeTests, ExampleRunPerfTestProcesses2, kGtestValues, kPerfTestName);
+INSTANTIATE_TEST_SUITE_P(RunModeTests, SabutayAPerfTest, kGtestValues, kPerfTestName);
 
 }  // namespace sabutay_a_increaseContrast

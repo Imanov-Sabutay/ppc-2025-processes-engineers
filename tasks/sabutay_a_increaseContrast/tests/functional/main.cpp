@@ -20,7 +20,7 @@
 
 namespace sabutay_a_increaseContrast {
 
-class NesterovARunFuncTestsProcesses2 : public ppc::util::BaseRunFuncTests<InType, OutType, TestType> {
+class SabutayAFuncTests : public ppc::util::BaseRunFuncTests<InType, OutType, TestType> {
  public:
   static std::string PrintTestParam(const TestType &test_param) {
     return std::to_string(std::get<0>(test_param)) + "_" + std::get<1>(test_param);
@@ -65,21 +65,21 @@ class NesterovARunFuncTestsProcesses2 : public ppc::util::BaseRunFuncTests<InTyp
 
 namespace {
 
-TEST_P(NesterovARunFuncTestsProcesses2, MatmulFromPic) {
+TEST_P(SabutayAFuncTests, MatmulFromPic) {
   ExecuteTest(GetParam());
 }
 
 const std::array<TestType, 3> kTestParam = {std::make_tuple(3, "3"), std::make_tuple(5, "5"), std::make_tuple(7, "7")};
 
-const auto kTestTasksList =
-    std::tuple_cat(ppc::util::AddFuncTask<SabutayAincreaseContrastMPI, InType>(kTestParam, PPC_SETTINGS_sabutay_a_increaseContrast),
-                   ppc::util::AddFuncTask<SabutayAincreaseContrastSEQ, InType>(kTestParam, PPC_SETTINGS_sabutay_a_increaseContrast));
+const auto kTestTasksList = std::tuple_cat(
+    ppc::util::AddFuncTask<SabutayAincreaseContrastMPI, InType>(kTestParam, PPC_SETTINGS_sabutay_a_increaseContrast),
+    ppc::util::AddFuncTask<SabutayAincreaseContrastSEQ, InType>(kTestParam, PPC_SETTINGS_sabutay_a_increaseContrast));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
-const auto kPerfTestName = NesterovARunFuncTestsProcesses2::PrintFuncTestName<NesterovARunFuncTestsProcesses2>;
+const auto kPerfTestName = SabutayAFuncTests::PrintFuncTestName<SabutayAFuncTests>;
 
-INSTANTIATE_TEST_SUITE_P(PicMatrixTests, NesterovARunFuncTestsProcesses2, kGtestValues, kPerfTestName);
+INSTANTIATE_TEST_SUITE_P(PicMatrixTests, SabutayAFuncTests, kGtestValues, kPerfTestName);
 
 }  // namespace
 
