@@ -12,15 +12,15 @@
 #include <utility>
 #include <vector>
 
-#include "sabutay_a_radixSortDoubleWithMerge/common/include/common.hpp"
-#include "sabutay_a_radixSortDoubleWithMerge/mpi/include/ops_mpi.hpp"
-#include "sabutay_a_radixSortDoubleWithMerge/seq/include/ops_seq.hpp"
+#include "sabutay_a_calculateSignChanges/common/include/common.hpp"
+#include "sabutay_a_calculateSignChanges/mpi/include/ops_mpi.hpp"
+#include "sabutay_a_calculateSignChanges/seq/include/ops_seq.hpp"
 #include "util/include/func_test_util.hpp"
 #include "util/include/util.hpp"
 
-namespace sabutay_a_radixSortDoubleWithMerge {
+namespace sabutay_a_calculateSignChanges {
 
-class SabutayAradixSortDoubleWithMergeFuncTests : public ppc::util::BaseRunFuncTests<InType, OutType, TestType> {
+class NesterovARunFuncTestsProcesses : public ppc::util::BaseRunFuncTests<InType, OutType, TestType> {
  public:
   static std::string PrintTestParam(const TestType &test_param) {
     return std::to_string(std::get<0>(test_param)) + "_" + std::get<1>(test_param);
@@ -34,7 +34,7 @@ class SabutayAradixSortDoubleWithMergeFuncTests : public ppc::util::BaseRunFuncT
     std::vector<uint8_t> img;
     // Read image in RGB to ensure consistent channel count
     {
-      std::string abs_path = ppc::util::GetAbsoluteTaskPath(PPC_ID_sabutay_a_radixSortDoubleWithMerge, "pic.jpg");
+      std::string abs_path = ppc::util::GetAbsoluteTaskPath(PPC_ID_sabutay_a_calculateSignChanges, "pic.jpg");
       auto *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
       if (data == nullptr) {
         throw std::runtime_error("Failed to load image: " + std::string(stbi_failure_reason()));
@@ -65,22 +65,22 @@ class SabutayAradixSortDoubleWithMergeFuncTests : public ppc::util::BaseRunFuncT
 
 namespace {
 
-TEST_P(SabutayAradixSortDoubleWithMergeFuncTests, MatmulFromPic) {
+TEST_P(NesterovARunFuncTestsProcesses, MatmulFromPic) {
   ExecuteTest(GetParam());
 }
 
 const std::array<TestType, 3> kTestParam = {std::make_tuple(3, "3"), std::make_tuple(5, "5"), std::make_tuple(7, "7")};
 
 const auto kTestTasksList =
-    std::tuple_cat(ppc::util::AddFuncTask<SabutayAradixSortDoubleWithMergeMPI, InType>(kTestParam, PPC_SETTINGS_sabutay_a_radixSortDoubleWithMerge),
-                   ppc::util::AddFuncTask<SabutayAradixSortDoubleWithMergeSEQ, InType>(kTestParam, PPC_SETTINGS_sabutay_a_radixSortDoubleWithMerge));
+    std::tuple_cat(ppc::util::AddFuncTask<SabutayAcalculateSignChangesMPI, InType>(kTestParam, PPC_SETTINGS_sabutay_a_calculateSignChanges),
+                   ppc::util::AddFuncTask<SabutayAcalculateSignChangesSEQ, InType>(kTestParam, PPC_SETTINGS_sabutay_a_calculateSignChanges));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
-const auto kPerfTestName = SabutayAradixSortDoubleWithMergeFuncTests::PrintFuncTestName<SabutayAradixSortDoubleWithMergeFuncTests>;
+const auto kPerfTestName = NesterovARunFuncTestsProcesses::PrintFuncTestName<NesterovARunFuncTestsProcesses>;
 
-INSTANTIATE_TEST_SUITE_P(PicMatrixTests, SabutayAradixSortDoubleWithMergeFuncTests, kGtestValues, kPerfTestName);
+INSTANTIATE_TEST_SUITE_P(PicMatrixTests, NesterovARunFuncTestsProcesses, kGtestValues, kPerfTestName);
 
 }  // namespace
 
-}  // namespace sabutay_a_radixSortDoubleWithMerge
+}  // namespace sabutay_a_calculateSignChanges
