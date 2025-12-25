@@ -17,7 +17,7 @@ SabutayAincreaseContrastSEQ::SabutayAincreaseContrastSEQ(const InType &in) {
 }
 
 bool SabutayAincreaseContrastSEQ::ValidationImpl() {
-  return (GetInput() > 0) && (GetOutput() == 0);
+  return (GetInput() >= 0) && (GetOutput() == 0);
 }
 
 bool SabutayAincreaseContrastSEQ::PreProcessingImpl() {
@@ -30,7 +30,7 @@ bool SabutayAincreaseContrastSEQ::RunImpl() {
   int height = 0;
   int channels = 0;
 
-  std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", "pic.jpg");
+  std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", "pic_1.jpg");
   unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
 
   if (data == nullptr) {

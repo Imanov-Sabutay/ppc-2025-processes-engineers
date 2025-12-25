@@ -19,7 +19,7 @@ SabutayAincreaseContrastMPI::SabutayAincreaseContrastMPI(const InType &in) {
 }
 
 bool SabutayAincreaseContrastMPI::ValidationImpl() {
-  return (GetInput() > 0) && (GetOutput() == 0);
+  return (GetInput() >= 0) && (GetOutput() == 0);
 }
 
 bool SabutayAincreaseContrastMPI::PreProcessingImpl() {
@@ -40,7 +40,7 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
 
   // Load image on rank 0
   if (rank == 0) {
-    std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", "pic.jpg");
+    std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", "pic_1.jpg");
     unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
 
     if (data == nullptr) {

@@ -34,7 +34,7 @@ class SabutayAFuncTests : public ppc::util::BaseRunFuncTests<InType, OutType, Te
     std::vector<uint8_t> img;
     // Read image in RGB to ensure consistent channel count
     {
-      std::string abs_path = ppc::util::GetAbsoluteTaskPath(PPC_ID_sabutay_a_increaseContrast, "pic.jpg");
+      std::string abs_path = ppc::util::GetAbsoluteTaskPath(PPC_ID_sabutay_a_increaseContrast, "pic_1.jpg");
       auto *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
       if (data == nullptr) {
         throw std::runtime_error("Failed to load image: " + std::string(stbi_failure_reason()));
@@ -42,13 +42,10 @@ class SabutayAFuncTests : public ppc::util::BaseRunFuncTests<InType, OutType, Te
       channels = STBI_rgb;
       img = std::vector<uint8_t>(data, data + (static_cast<ptrdiff_t>(width * height * channels)));
       stbi_image_free(data);
-      if (std::cmp_not_equal(width, height)) {
-        throw std::runtime_error("width != height: ");
-      }
     }
 
     TestType params = std::get<static_cast<std::size_t>(ppc::util::GTestParamIndex::kTestParams)>(GetParam());
-    input_data_ = width - height + std::min(std::accumulate(img.begin(), img.end(), 0), channels);
+    input_data_ = std::abs(width - height) + std::min(std::accumulate(img.begin(), img.end(), 0), channels);
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
