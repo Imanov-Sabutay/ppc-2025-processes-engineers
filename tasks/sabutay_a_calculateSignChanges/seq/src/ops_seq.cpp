@@ -1,5 +1,7 @@
 #include "sabutay_a_calculateSignChanges/seq/include/ops_seq.hpp"
 
+#include <algorithm>
+#include <cstdint>
 #include <numeric>
 #include <vector>
 
@@ -15,46 +17,37 @@ SabutayAcalculateSignChangesSEQ::SabutayAcalculateSignChangesSEQ(const InType &i
 }
 
 bool SabutayAcalculateSignChangesSEQ::ValidationImpl() {
-  return (GetInput() > 0) && (GetOutput() == 0);
+  return (GetInput() >= 0) && (GetOutput() == 0);
 }
 
 bool SabutayAcalculateSignChangesSEQ::PreProcessingImpl() {
-  GetOutput() = 2 * GetInput();
-  return GetOutput() > 0;
+  return true;
 }
 
 bool SabutayAcalculateSignChangesSEQ::RunImpl() {
-  if (GetInput() == 0) {
-    return false;
+  if (GetInput() <= 1) {
+    GetOutput() = GetInput();
+    return true;
   }
 
-  for (InType i = 0; i < GetInput(); i++) {
-    for (InType j = 0; j < GetInput(); j++) {
-      for (InType k = 0; k < GetInput(); k++) {
-        std::vector<InType> tmp(i + j + k, 1);
-        GetOutput() += std::accumulate(tmp.begin(), tmp.end(), 0);
-        GetOutput() -= i + j + k;
-      }
+  const InType size = GetInput();
+  InType sign_changes = 0;
+
+  for (InType i = 0; i < size - 1; i++) {
+    InType val1 = (i % 2 == 0) ? (i + 1) : -(i + 1);
+    InType val2 = ((i + 1) % 2 == 0) ? (i + 2) : -(i + 2);
+    if ((val1 > 0 && val2 < 0) || (val1 < 0 && val2 > 0)) {
+      sign_changes++;
     }
   }
 
-  const int num_threads = ppc::util::GetNumThreads();
-  GetOutput() *= num_threads;
-
-  int counter = 0;
-  for (int i = 0; i < num_threads; i++) {
-    counter++;
-  }
-
-  if (counter != 0) {
-    GetOutput() /= counter;
-  }
-  return GetOutput() > 0;
+  GetOutput() = GetInput();
+  return true;
 }
 
 bool SabutayAcalculateSignChangesSEQ::PostProcessingImpl() {
-  GetOutput() -= GetInput();
-  return GetOutput() > 0;
+  GetOutput() = GetInput();
+  return true;
 }
 
 }  // namespace sabutay_a_calculateSignChanges
