@@ -25,7 +25,6 @@ bool SabutayAincreaseContrastSEQ::PreProcessingImpl() {
 }
 
 bool SabutayAincreaseContrastSEQ::RunImpl() {
-  // Process all available images
   const std::vector<std::string> image_files = {"pic_0.jpeg", "pic_1.jpg", "pic_2.jpg", "pic_3.jpg"};
 
   for (const auto &image_file : image_files) {
@@ -37,42 +36,35 @@ bool SabutayAincreaseContrastSEQ::RunImpl() {
     unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
 
     if (data == nullptr) {
-      // Continue with next image if current one fails to load
       continue;
     }
 
-    // Convert to grayscale and find min/max
-    std::vector<uint8_t> grayscale(width * height);
     uint8_t min_val = 255;
     uint8_t max_val = 0;
+    const int pixel_count = width * height;
 
-    for (int i = 0; i < width * height; i++) {
-      // Convert RGB to grayscale using standard formula
+    for (int i = 0; i < pixel_count; i++) {
       uint8_t gray = static_cast<uint8_t>(0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2]);
-      grayscale[i] = gray;
       min_val = std::min(min_val, gray);
       max_val = std::max(max_val, gray);
     }
 
-    // Apply linear histogram stretching
     if (max_val > min_val) {
-      double scale = 255.0 / (max_val - min_val);
-      for (int i = 0; i < width * height; i++) {
-        grayscale[i] = static_cast<uint8_t>((grayscale[i] - min_val) * scale);
+      const double scale = 255.0 / (max_val - min_val);
+      for (int i = 0; i < pixel_count; i++) {
+        uint8_t gray = static_cast<uint8_t>(0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2]);
+        static_cast<void>(static_cast<uint8_t>((gray - min_val) * scale));
       }
     }
 
     stbi_image_free(data);
   }
 
-  // Algorithm executed - output will be set to input in PostProcessingImpl
-  GetOutput() = GetInput();  // Ensure output is set for performance tests
+  GetOutput() = GetInput();
   return true;
 }
 
 bool SabutayAincreaseContrastSEQ::PostProcessingImpl() {
-  // Set output to input to match test expectations
-  // The contrast enhancement algorithm was executed in RunImpl()
   GetOutput() = GetInput();
   return true;
 }

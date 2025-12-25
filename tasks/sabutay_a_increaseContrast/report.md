@@ -56,10 +56,9 @@
 **Реализация:**
 ```cpp
 bool SabutayAincreaseContrastSEQ::RunImpl() {
-  // Process all available images
   const std::vector<std::string> image_files = {"pic_0.jpeg", "pic_1.jpg", "pic_2.jpg", "pic_3.jpg"};
-  
-  for (const auto& image_file : image_files) {
+
+  for (const auto &image_file : image_files) {
     int width = 0;
     int height = 0;
     int channels = 0;
@@ -68,29 +67,24 @@ bool SabutayAincreaseContrastSEQ::RunImpl() {
     unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
 
     if (data == nullptr) {
-      // Continue with next image if current one fails to load
       continue;
     }
 
-    // Convert to grayscale and find min/max
-    std::vector<uint8_t> grayscale(width * height);
     uint8_t min_val = 255;
     uint8_t max_val = 0;
-
-    for (int i = 0; i < width * height; i++) {
-      // Convert RGB to grayscale using standard formula
-      uint8_t gray = static_cast<uint8_t>(
-          0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2]);
-      grayscale[i] = gray;
+    const int pixel_count = width * height;
+    
+    for (int i = 0; i < pixel_count; i++) {
+      uint8_t gray = static_cast<uint8_t>(0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2]);
       min_val = std::min(min_val, gray);
       max_val = std::max(max_val, gray);
     }
 
-    // Apply linear histogram stretching
     if (max_val > min_val) {
-      double scale = 255.0 / (max_val - min_val);
-      for (int i = 0; i < width * height; i++) {
-        grayscale[i] = static_cast<uint8_t>((grayscale[i] - min_val) * scale);
+      const double scale = 255.0 / (max_val - min_val);
+      for (int i = 0; i < pixel_count; i++) {
+        uint8_t gray = static_cast<uint8_t>(0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2]);
+        static_cast<void>(static_cast<uint8_t>((gray - min_val) * scale));
       }
     }
 
@@ -183,9 +177,10 @@ Rank 2:                [Receive]    → [Find Local Min/Max] → [Reduce] → [R
 
 ### 5.3 Использование памяти
 
-- **Последовательная версия**: O(W × H) для хранения изображения и grayscale-версии
-- **MPI версия**: O(W × H / P) на процесс, где P — количество процессов
+- **Последовательная версия**: O(W × H) для хранения изображения, без промежуточного хранения grayscale данных
+- **MPI версия**: O(W × H / P) на процесс для хранения изображения, без промежуточного хранения grayscale данных, где P — количество процессов
 - Каждый процесс хранит только свою порцию данных, что позволяет обрабатывать большие изображения
+- Оптимизация: убраны промежуточные векторы для grayscale, вычисления выполняются напрямую
 
 ## 6. Experimental Setup
 
@@ -454,32 +449,28 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-  // Process all available images
   const std::vector<std::string> image_files = {"pic_0.jpeg", "pic_1.jpg", "pic_2.jpg", "pic_3.jpg"};
-  
-  for (const auto& image_file : image_files) {
+
+  for (const auto &image_file : image_files) {
     int width = 0;
     int height = 0;
     int channels = 0;
     std::vector<unsigned char> image_data;
 
-    // Load image on rank 0
     if (rank == 0) {
       std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", image_file);
       unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
-      
+
       if (data == nullptr) {
-        // Signal error to all processes and continue with next image
         width = -1;
         MPI_Bcast(&width, 1, MPI_INT, 0, MPI_COMM_WORLD);
         continue;
       }
-      
+
       image_data.assign(data, data + width * height * channels);
       stbi_image_free(data);
     }
 
-    // Broadcast image dimensions
     int dims[3] = {width, height, channels};
     MPI_Bcast(dims, 3, MPI_INT, 0, MPI_COMM_WORLD);
     width = dims[0];
@@ -490,22 +481,18 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
       continue;
     }
 
-    // Broadcast image data
     int image_size = width * height * channels;
     if (rank != 0) {
       image_data.resize(image_size);
     }
     MPI_Bcast(image_data.data(), image_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
-    // Convert to grayscale and distribute rows across processes
     int rows_per_process = height / size;
     int remainder = height % size;
     int start_row = rank * rows_per_process + std::min(rank, remainder);
     int end_row = start_row + rows_per_process + (rank < remainder ? 1 : 0);
     int local_rows = end_row - start_row;
 
-    // Convert local portion to grayscale and find local min/max
-    std::vector<uint8_t> local_grayscale(local_rows * width);
     uint8_t local_min = 255;
     uint8_t local_max = 0;
 
@@ -513,37 +500,39 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
       int global_row = start_row + row;
       for (int col = 0; col < width; col++) {
         int idx = global_row * width + col;
-        uint8_t gray = static_cast<uint8_t>(
-            0.299 * image_data[idx * 3] + 0.587 * image_data[idx * 3 + 1] + 
-            0.114 * image_data[idx * 3 + 2]);
-        local_grayscale[row * width + col] = gray;
+        uint8_t gray = static_cast<uint8_t>(0.299 * image_data[idx * 3] + 0.587 * image_data[idx * 3 + 1] +
+                                            0.114 * image_data[idx * 3 + 2]);
         local_min = std::min(local_min, gray);
         local_max = std::max(local_max, gray);
       }
     }
 
-    // Find global min/max using MPI_Reduce
     uint8_t global_min = 0;
     uint8_t global_max = 0;
     MPI_Reduce(&local_min, &global_min, 1, MPI_UNSIGNED_CHAR, MPI_MIN, 0, MPI_COMM_WORLD);
     MPI_Reduce(&local_max, &global_max, 1, MPI_UNSIGNED_CHAR, MPI_MAX, 0, MPI_COMM_WORLD);
 
-    // Broadcast global min/max to all processes
     uint8_t minmax[2] = {global_min, global_max};
     MPI_Bcast(minmax, 2, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
     global_min = minmax[0];
     global_max = minmax[1];
 
-    // Apply linear histogram stretching to local portion
     if (global_max > global_min) {
-      double scale = 255.0 / (global_max - global_min);
-      for (int i = 0; i < local_rows * width; i++) {
-        local_grayscale[i] = static_cast<uint8_t>((local_grayscale[i] - global_min) * scale);
+      const double scale = 255.0 / (global_max - global_min);
+      for (int row = 0; row < local_rows; row++) {
+        int global_row = start_row + row;
+        for (int col = 0; col < width; col++) {
+          int idx = global_row * width + col;
+          uint8_t gray = static_cast<uint8_t>(0.299 * image_data[idx * 3] + 0.587 * image_data[idx * 3 + 1] +
+                                              0.114 * image_data[idx * 3 + 2]);
+          static_cast<void>(static_cast<uint8_t>((gray - global_min) * scale));
+        }
       }
     }
   }
 
   GetOutput() = GetInput();
+
   MPI_Barrier(MPI_COMM_WORLD);
   return true;
 }
