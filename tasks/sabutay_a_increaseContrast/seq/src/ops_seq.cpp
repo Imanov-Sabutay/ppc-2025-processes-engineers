@@ -27,8 +27,8 @@ bool SabutayAincreaseContrastSEQ::PreProcessingImpl() {
 bool SabutayAincreaseContrastSEQ::RunImpl() {
   // Process all available images
   const std::vector<std::string> image_files = {"pic_0.jpeg", "pic_1.jpg", "pic_2.jpg", "pic_3.jpg"};
-  
-  for (const auto& image_file : image_files) {
+
+  for (const auto &image_file : image_files) {
     int width = 0;
     int height = 0;
     int channels = 0;
