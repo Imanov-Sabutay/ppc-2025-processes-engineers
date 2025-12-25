@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include "example_processes_3/common/include/common.hpp"
-#include "example_processes_3/mpi/include/ops_mpi.hpp"
-#include "example_processes_3/seq/include/ops_seq.hpp"
+#include "sabutay_a_radixSortDoubleWithMerge/common/include/common.hpp"
+#include "sabutay_a_radixSortDoubleWithMerge/mpi/include/ops_mpi.hpp"
+#include "sabutay_a_radixSortDoubleWithMerge/seq/include/ops_seq.hpp"
 #include "util/include/perf_test_util.hpp"
 
-namespace nesterov_a_test_task_processes_3 {
+namespace sabutay_a_radixSortDoubleWithMerge {
 
 class ExampleRunPerfTestProcesses3 : public ppc::util::BaseRunPerfTests<InType, OutType> {
   const int kCount_ = 100;
@@ -29,7 +29,7 @@ TEST_P(ExampleRunPerfTestProcesses3, RunPerfModes) {
 }
 
 const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, NesterovATestTaskMPI, NesterovATestTaskSEQ>(PPC_SETTINGS_example_processes_3);
+    ppc::util::MakeAllPerfTasks<InType, SabutayAradixSortDoubleWithMergeMPI, SabutayAradixSortDoubleWithMergeSEQ>(PPC_SETTINGS_sabutay_a_radixSortDoubleWithMerge);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 
@@ -37,4 +37,4 @@ const auto kPerfTestName = ExampleRunPerfTestProcesses3::CustomPerfTestName;
 
 INSTANTIATE_TEST_SUITE_P(RunModeTests, ExampleRunPerfTestProcesses3, kGtestValues, kPerfTestName);
 
-}  // namespace nesterov_a_test_task_processes_3
+}  // namespace sabutay_a_radixSortDoubleWithMerge

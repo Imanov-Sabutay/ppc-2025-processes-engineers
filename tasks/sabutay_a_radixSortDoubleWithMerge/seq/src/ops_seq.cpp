@@ -1,29 +1,29 @@
-#include "example_processes_3/seq/include/ops_seq.hpp"
+#include "sabutay_a_radixSortDoubleWithMerge/seq/include/ops_seq.hpp"
 
 #include <numeric>
 #include <vector>
 
-#include "example_processes_3/common/include/common.hpp"
+#include "sabutay_a_radixSortDoubleWithMerge/common/include/common.hpp"
 #include "util/include/util.hpp"
 
-namespace nesterov_a_test_task_processes_3 {
+namespace sabutay_a_radixSortDoubleWithMerge {
 
-NesterovATestTaskSEQ::NesterovATestTaskSEQ(const InType &in) {
+SabutayAradixSortDoubleWithMergeSEQ::SabutayAradixSortDoubleWithMergeSEQ(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
   GetOutput() = 0;
 }
 
-bool NesterovATestTaskSEQ::ValidationImpl() {
+bool SabutayAradixSortDoubleWithMergeSEQ::ValidationImpl() {
   return (GetInput() > 0) && (GetOutput() == 0);
 }
 
-bool NesterovATestTaskSEQ::PreProcessingImpl() {
+bool SabutayAradixSortDoubleWithMergeSEQ::PreProcessingImpl() {
   GetOutput() = 2 * GetInput();
   return GetOutput() > 0;
 }
 
-bool NesterovATestTaskSEQ::RunImpl() {
+bool SabutayAradixSortDoubleWithMergeSEQ::RunImpl() {
   if (GetInput() == 0) {
     return false;
   }
@@ -52,9 +52,9 @@ bool NesterovATestTaskSEQ::RunImpl() {
   return GetOutput() > 0;
 }
 
-bool NesterovATestTaskSEQ::PostProcessingImpl() {
+bool SabutayAradixSortDoubleWithMergeSEQ::PostProcessingImpl() {
   GetOutput() -= GetInput();
   return GetOutput() > 0;
 }
 
-}  // namespace nesterov_a_test_task_processes_3
+}  // namespace sabutay_a_radixSortDoubleWithMerge

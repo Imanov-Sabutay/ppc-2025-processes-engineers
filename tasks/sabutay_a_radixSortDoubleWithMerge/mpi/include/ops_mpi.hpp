@@ -1,16 +1,16 @@
 #pragma once
 
-#include "example_processes_3/common/include/common.hpp"
+#include "sabutay_a_radixSortDoubleWithMerge/common/include/common.hpp"
 #include "task/include/task.hpp"
 
-namespace nesterov_a_test_task_processes_3 {
+namespace sabutay_a_radixSortDoubleWithMerge {
 
-class NesterovATestTaskMPI : public BaseTask {
+class SabutayAradixSortDoubleWithMergeMPI : public BaseTask {
  public:
   static constexpr ppc::task::TypeOfTask GetStaticTypeOfTask() {
     return ppc::task::TypeOfTask::kMPI;
   }
-  explicit NesterovATestTaskMPI(const InType &in);
+  explicit SabutayAradixSortDoubleWithMergeMPI(const InType &in);
 
  private:
   bool ValidationImpl() override;
@@ -19,4 +19,4 @@ class NesterovATestTaskMPI : public BaseTask {
   bool PostProcessingImpl() override;
 };
 
-}  // namespace nesterov_a_test_task_processes_3
+}  // namespace sabutay_a_radixSortDoubleWithMerge

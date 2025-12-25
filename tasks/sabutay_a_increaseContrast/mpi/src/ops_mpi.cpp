@@ -3,7 +3,9 @@
 #include <mpi.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <numeric>
+#include <string>
 #include <vector>
 
 #include "sabutay_a_increaseContrast/common/include/common.hpp"
