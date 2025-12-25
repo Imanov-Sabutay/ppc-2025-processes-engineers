@@ -46,12 +46,10 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
 
       if (data == nullptr) {
         width = -1;
-        MPI_Bcast(&width, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        continue;
+      } else {
+        image_data.assign(data, data + width * height * channels);
+        stbi_image_free(data);
       }
-
-      image_data.assign(data, data + width * height * channels);
-      stbi_image_free(data);
     }
 
     int dims[3] = {width, height, channels};
