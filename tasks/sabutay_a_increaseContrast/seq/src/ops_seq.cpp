@@ -1,7 +1,9 @@
 #include "sabutay_a_increaseContrast/seq/include/ops_seq.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <numeric>
+#include <string>
 #include <vector>
 
 #include "sabutay_a_increaseContrast/common/include/common.hpp"
