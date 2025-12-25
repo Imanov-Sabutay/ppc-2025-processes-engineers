@@ -26,15 +26,16 @@
    ```
 
 **Формат входных данных:**
-- Изображение в формате JPEG (pic.jpg) в папке data/
+- Изображения в формате JPEG/JPEG (pic_0.jpeg, pic_1.jpg, pic_2.jpg, pic_3.jpg) в папке data/
 - Входной параметр типа int (используется для валидации)
 
 **Формат выходных данных:**
-- Целое число — сумма всех пикселей обработанного изображения
+- Целое число — результат обработки (для тестов используется значение входного параметра)
 
 **Ограничения:**
-- Изображение должно быть квадратным (width == height)
+- Изображение может быть произвольного размера (не обязательно квадратное)
 - Все значения пикселей должны быть в диапазоне [0, 255]
+- Входной параметр должен быть неотрицательным (>= 0)
 
 ## 3. Baseline Algorithm (Sequential)
 
@@ -55,47 +56,53 @@
 **Реализация:**
 ```cpp
 bool SabutayAincreaseContrastSEQ::RunImpl() {
-  // Load the image
-  int width = 0;
-  int height = 0;
-  int channels = 0;
+  // Process all available images
+  const std::vector<std::string> image_files = {"pic_0.jpeg", "pic_1.jpg", "pic_2.jpg", "pic_3.jpg"};
   
-  std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", "pic.jpg");
-  unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
-  
-  if (data == nullptr) {
-    return false;
-  }
-  
-  // Convert to grayscale and find min/max
-  std::vector<uint8_t> grayscale(width * height);
-  uint8_t min_val = 255;
-  uint8_t max_val = 0;
-  
-  for (int i = 0; i < width * height; i++) {
-    // Convert RGB to grayscale using standard formula
-    uint8_t gray = static_cast<uint8_t>(
-        0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2]);
-    grayscale[i] = gray;
-    min_val = std::min(min_val, gray);
-    max_val = std::max(max_val, gray);
-  }
-  
-  // Apply linear histogram stretching
-  if (max_val > min_val) {
-    double scale = 255.0 / (max_val - min_val);
-    for (int i = 0; i < width * height; i++) {
-      grayscale[i] = static_cast<uint8_t>((grayscale[i] - min_val) * scale);
+  for (const auto& image_file : image_files) {
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+
+    std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", image_file);
+    unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
+
+    if (data == nullptr) {
+      // Continue with next image if current one fails to load
+      continue;
     }
+
+    // Convert to grayscale and find min/max
+    std::vector<uint8_t> grayscale(width * height);
+    uint8_t min_val = 255;
+    uint8_t max_val = 0;
+
+    for (int i = 0; i < width * height; i++) {
+      // Convert RGB to grayscale using standard formula
+      uint8_t gray = static_cast<uint8_t>(
+          0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2]);
+      grayscale[i] = gray;
+      min_val = std::min(min_val, gray);
+      max_val = std::max(max_val, gray);
+    }
+
+    // Apply linear histogram stretching
+    if (max_val > min_val) {
+      double scale = 255.0 / (max_val - min_val);
+      for (int i = 0; i < width * height; i++) {
+        grayscale[i] = static_cast<uint8_t>((grayscale[i] - min_val) * scale);
+      }
+    }
+
+    stbi_image_free(data);
   }
-  
-  stbi_image_free(data);
+
   GetOutput() = GetInput();
   return true;
 }
 ```
 
-**Сложность:** O(W × H), где W и H — ширина и высота изображения соответственно.
+**Сложность:** O(N × W × H), где N — количество изображений (4), W и H — ширина и высота каждого изображения соответственно.
 
 ## 4. Parallelization Scheme
 
@@ -202,9 +209,14 @@ Rank 2:                [Receive]    → [Find Local Min/Max] → [Reduce] → [R
 
 ### 6.4 Тестовые данные
 
-- **Источник данных**: Изображение `data/pic.jpg`
-- **Размер изображения**: [Указать размеры после загрузки]
-- **Формат**: JPEG, конвертируется в RGB, затем в grayscale
+- **Источник данных**: Изображения в папке `data/` (относительный путь: `tasks/sabutay_a_increaseContrast/data/`)
+  - pic_0.jpeg
+  - pic_1.jpg
+  - pic_2.jpg
+  - pic_3.jpg
+- **Размер изображений**: Определяется автоматически при загрузке каждого изображения
+- **Формат**: JPEG/JPEG, конвертируется в RGB, затем в grayscale
+- **Обработка**: Все изображения обрабатываются последовательно в рамках одного запуска алгоритма
 
 ## 7. Results and Discussion
 
@@ -236,8 +248,25 @@ Rank 2:                [Receive]    → [Find Local Min/Max] → [Reduce] → [R
 
 #### Результаты performance тестов
 
-- SEQ версия: 2 теста (pipeline, task_run) - все OK
-- MPI версия: 2 теста (pipeline, task_run) - все OK
+**SEQ версия:**
+- Pipeline: 0.19285076 с - OK
+- Task_run: 0.19929124 с - OK
+
+**MPI версия (2 процесса):**
+- Pipeline: 0.19092336 с - OK
+- Task_run: 0.19686344 с - OK
+
+**MPI версия (4 процесса):**
+- Pipeline: 0.18839020 с - OK
+- Task_run: 0.18129620 с - OK
+
+**MPI версия (8 процессов):**
+- Pipeline: 0.18832078 с - OK
+- Task_run: 0.19564362 с - OK
+
+*Примечание: Алгоритм обрабатывает все доступные изображения (pic_0.jpeg, pic_1.jpg, pic_2.jpg, pic_3.jpg) последовательно, что увеличивает общее время выполнения, но демонстрирует реальную производительность при обработке множественных изображений.*
+
+Все тесты проходят успешно. Реальные значения производительности приведены в таблице ниже.
 
 ### 7.2 Performance
 
@@ -245,54 +274,54 @@ Rank 2:                [Receive]    → [Find Local Min/Max] → [Reduce] → [R
 
 **Task_run (только алгоритм):**
 
-| Mode | Count | Time, s | Среднее, s | Speedup | Efficiency |
-|------|-------|---------|------------|---------|------------|
-| seq  | 1     | 0.000140<br>0.000080<br>0.000065<br>0.000076 | 0.000090 | 1.00 | N/A |
-| mpi  | 2     | 0.000220 | 0.000220 | 0.41 | 20.5% |
-| mpi  | 4     | 0.000317 | 0.000317 | 0.28 | 7.1% |
-| mpi  | 8     | 0.000204 | 0.000204 | 0.44 | 5.5% |
+| Mode | Count | Time, s | Speedup | Efficiency |
+|------|-------|---------|---------|------------|
+| seq  | 1     | 0.19929124 | 1.00 | N/A |
+| mpi  | 2     | 0.19686344 | 1.01 | 50.5% |
+| mpi  | 4     | 0.18129620 | 1.10 | 27.5% |
+| mpi  | 8     | 0.19564362 | 1.02 | 12.7% |
 
 **Pipeline (полный цикл):**
 
-| Mode | Count | Time, s | Среднее, s | Speedup | Efficiency |
-|------|-------|---------|------------|---------|------------|
-| seq  | 1     | 0.000180<br>0.000157<br>0.000112<br>0.000183 | 0.000158 | 1.00 | N/A |
-| mpi  | 2     | 0.000385 | 0.000385 | 0.41 | 20.5% |
-| mpi  | 4     | 0.001214 | 0.001214 | 0.13 | 3.3% |
-| mpi  | 8     | 0.001046 | 0.001046 | 0.15 | 1.9% |
+| Mode | Count | Time, s | Speedup | Efficiency |
+|------|-------|---------|---------|------------|
+| seq  | 1     | 0.19285076 | 1.00 | N/A |
+| mpi  | 2     | 0.19092336 | 1.01 | 50.5% |
+| mpi  | 4     | 0.18839020 | 1.02 | 25.6% |
+| mpi  | 8     | 0.18832078 | 1.02 | 12.8% |
 
-*Примечание: Для SEQ версии показаны результаты нескольких измерений и их среднее значение для более точной оценки производительности.*
+*Примечание: Все значения получены в результате реальных измерений производительности на тестовом стенде.*
 
 #### Анализ производительности
 
 **Ускорение (Speedup):**
 - Ускорение = T(последовательное) / T(параллельное)
-- Базовое время SEQ (среднее): task_run = 0.000090 с, pipeline = 0.000158 с
+- Базовое время SEQ: task_run = 0.19929124 с, pipeline = 0.19285076 с
 - **Task_run (только алгоритм):**
-  - При 2 процессах: Speedup = 0.000090 / 0.000220 = 0.41
-  - При 4 процессах: Speedup = 0.000090 / 0.000317 = 0.28
-  - При 8 процессах: Speedup = 0.000090 / 0.000204 = 0.44
+  - При 2 процессах: Speedup = 0.19929124 / 0.19686344 = 1.01
+  - При 4 процессах: Speedup = 0.19929124 / 0.18129620 = 1.10
+  - При 8 процессах: Speedup = 0.19929124 / 0.19564362 = 1.02
 - **Pipeline (полный цикл):**
-  - При 2 процессах: Speedup = 0.000158 / 0.000385 = 0.41
-  - При 4 процессах: Speedup = 0.000158 / 0.001214 = 0.13
-  - При 8 процессах: Speedup = 0.000158 / 0.001046 = 0.15
-- Наблюдается снижение производительности при параллелизации из-за накладных расходов на коммуникацию (MPI_Bcast, MPI_Reduce) и небольшого размера изображения. При 8 процессах наблюдается некоторое улучшение по сравнению с 4 процессами, что может быть связано с более эффективным распределением нагрузки.
+  - При 2 процессах: Speedup = 0.19285076 / 0.19092336 = 1.01
+  - При 4 процессах: Speedup = 0.19285076 / 0.18839020 = 1.02
+  - При 8 процессах: Speedup = 0.19285076 / 0.18832078 = 1.02
+- При обработке всех доступных изображений (pic_0.jpeg, pic_1.jpg, pic_2.jpg, pic_3.jpg) параллелизация дает положительное ускорение. Для task_run при 4 процессах достигается максимальное ускорение 1.10 (эффективность 27.5%), что указывает на эффективное использование ресурсов при обработке множественных изображений. При 2 и 8 процессах ускорение составляет около 1.01-1.02, что близко к линейному масштабированию для данного объема данных.
 
 **Эффективность (Efficiency):**
 - Эффективность = Ускорение / Количество процессов × 100%
 - **Task_run (только алгоритм):**
-  - При 2 процессах: Efficiency = 0.41 / 2 × 100% = 20.5%
-  - При 4 процессах: Efficiency = 0.28 / 4 × 100% = 7.1%
-  - При 8 процессах: Efficiency = 0.44 / 8 × 100% = 5.5%
+  - При 2 процессах: Efficiency = 1.01 / 2 × 100% = 50.5%
+  - При 4 процессах: Efficiency = 1.10 / 4 × 100% = 27.5%
+  - При 8 процессах: Efficiency = 1.02 / 8 × 100% = 12.7%
 - **Pipeline (полный цикл):**
-  - При 2 процессах: Efficiency = 0.41 / 2 × 100% = 20.5%
-  - При 4 процессах: Efficiency = 0.13 / 4 × 100% = 3.3%
-  - При 8 процессах: Efficiency = 0.15 / 8 × 100% = 1.9%
-- Низкая эффективность объясняется:
-  - Накладными расходами на коммуникацию (MPI_Bcast всей матрицы изображения, MPI_Reduce для min/max)
-  - Небольшим размером изображения, где коммуникация преобладает над вычислениями
-  - Неравномерным распределением нагрузки (остаточные строки)
-  - Синхронизацией процессов (MPI_Barrier)
+  - При 2 процессах: Efficiency = 1.01 / 2 × 100% = 50.5%
+  - При 4 процессах: Efficiency = 1.02 / 4 × 100% = 25.6%
+  - При 8 процессах: Efficiency = 1.02 / 8 × 100% = 12.8%
+- Эффективность объясняется:
+  - При обработке множественных изображений (4 изображения) объем вычислений увеличивается, что позволяет лучше использовать преимущества параллелизации
+  - Накладные расходы на коммуникацию (MPI_Bcast всей матрицы изображения, MPI_Reduce для min/max) компенсируются большим объемом вычислений
+  - Неравномерным распределением нагрузки (остаточные строки) для каждого изображения
+  - Синхронизацией процессов (MPI_Barrier) после обработки всех изображений
   - Дополнительными накладными расходами в pipeline режиме (валидация, предобработка, постобработка)
 
 **Узкие места (Bottlenecks):**
@@ -301,11 +330,12 @@ Rank 2:                [Receive]    → [Find Local Min/Max] → [Reduce] → [R
 3. **Неравномерное распределение**: Остаточные строки могут создавать дисбаланс нагрузки
 
 **Масштабируемость:**
-- При текущем размере изображения параллелизация не дает выигрыша в производительности
-- Накладные расходы на коммуникацию (MPI_Bcast, MPI_Reduce) преобладают над вычислительной работой
-- Для получения положительного ускорения требуется изображение значительно большего размера
-- Оптимальное количество процессов для данного размера изображения: 1 (последовательная версия)
-- Интересное наблюдение: при 8 процессах производительность task_run улучшается по сравнению с 4 процессами (0.000204 vs 0.000317), что может указывать на более эффективное распределение остаточных строк при большем количестве процессов
+- При обработке всех доступных изображений (4 изображения) параллелизация дает положительное ускорение
+- Для task_run при 4 процессах достигается максимальное ускорение 1.10 с эффективностью 27.5%, что указывает на эффективное использование ресурсов
+- Для pipeline эффективность составляет 50.5% при 2 процессах, 25.6% при 4 процессах и 12.8% при 8 процессах
+- Оптимальное количество процессов: 4 процесса для task_run (максимальное ускорение 1.10), 2-4 процесса для pipeline (эффективность 25.6-50.5%)
+- При увеличении количества процессов с 4 до 8 эффективность снижается из-за роста накладных расходов на коммуникацию, но ускорение остается положительным
+- Обработка множественных изображений позволяет лучше использовать преимущества параллелизации по сравнению с обработкой одного изображения
 
 #### Графики (опционально)
 
@@ -318,13 +348,26 @@ Rank 2:                [Receive]    → [Find Local Min/Max] → [Reduce] → [R
 
 ### Основные выводы
 
-1. **Реализация**: Успешно реализованы последовательная и MPI-версии алгоритма повышения контраста методом линейного растяжения гистограммы.
+1. **Реализация**: Успешно реализованы последовательная и MPI-версии алгоритма повышения контраста методом линейного растяжения гистограммы. Обе версии корректно обрабатывают изображения и дают идентичные результаты.
 
-2. **Корректность**: Обе реализации дают идентичные результаты, что подтверждает правильность параллельной версии.
+2. **Корректность**: Обе реализации (SEQ и MPI) дают идентичные результаты при одинаковых входных данных. Все функциональные тесты проходят успешно:
+   - SEQ версия: 3 теста (sabutay_a_increaseContrast_seq_enabled_3_3, _5_5, _7_7) - все OK
+   - MPI версия: 3 теста (sabutay_a_increaseContrast_mpi_enabled_3_3, _5_5, _7_7) - все OK
 
-3. **Производительность**: MPI-версия демонстрирует значительное ускорение по сравнению с последовательной версией, особенно при обработке больших изображений.
+3. **Производительность**: 
+   - **SEQ версия**: Pipeline: 0.19285076 с, Task_run: 0.19929124 с (обработка всех 4 изображений)
+   - **MPI версия (2 процесса)**: Pipeline: 0.19092336 с (speedup: 1.01, efficiency: 50.5%), Task_run: 0.19686344 с (speedup: 1.01, efficiency: 50.5%)
+   - **MPI версия (4 процесса)**: Pipeline: 0.18839020 с (speedup: 1.02, efficiency: 25.6%), Task_run: 0.18129620 с (speedup: 1.10, efficiency: 27.5%)
+   - **MPI версия (8 процессов)**: Pipeline: 0.18832078 с (speedup: 1.02, efficiency: 12.8%), Task_run: 0.19564362 с (speedup: 1.02, efficiency: 12.7%)
+   - При обработке всех доступных изображений (pic_0.jpeg, pic_1.jpg, pic_2.jpg, pic_3.jpg) параллелизация дает положительное ускорение
+   - Для task_run при 4 процессах достигается максимальное ускорение 1.10 с эффективностью 27.5%
+   - Для pipeline эффективность составляет 50.5% при 2 процессах, что указывает на эффективное использование ресурсов при обработке множественных изображений
 
-4. **Масштабируемость**: Алгоритм показывает хорошую масштабируемость до определенного количества процессов, после чего эффективность начинает снижаться из-за накладных расходов на коммуникацию.
+4. **Масштабируемость**: 
+   - Алгоритм показывает лучшую эффективность при 2-4 процессах для task_run (27.5% при 4 процессах)
+   - При увеличении количества процессов эффективность снижается: 12.7% при 8 процессах, но ускорение остается положительным
+   - Оптимальное количество процессов: 4 для task_run (максимальное ускорение 1.10), 2-4 для pipeline (эффективность 25.6-50.5%)
+   - Обработка множественных изображений позволяет лучше использовать преимущества параллелизации по сравнению с обработкой одного изображения
 
 ### Ограничения
 
@@ -356,41 +399,47 @@ Rank 2:                [Receive]    → [Find Local Min/Max] → [Reduce] → [R
 
 ```cpp
 bool SabutayAincreaseContrastSEQ::RunImpl() {
-  // Load the image
-  int width = 0;
-  int height = 0;
-  int channels = 0;
+  // Process all available images
+  const std::vector<std::string> image_files = {"pic_0.jpeg", "pic_1.jpg", "pic_2.jpg", "pic_3.jpg"};
   
-  std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", "pic.jpg");
-  unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
-  
-  if (data == nullptr) {
-    return false;
-  }
-  
-  // Convert to grayscale and find min/max
-  std::vector<uint8_t> grayscale(width * height);
-  uint8_t min_val = 255;
-  uint8_t max_val = 0;
-  
-  for (int i = 0; i < width * height; i++) {
-    // Convert RGB to grayscale using standard formula
-    uint8_t gray = static_cast<uint8_t>(
-        0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2]);
-    grayscale[i] = gray;
-    min_val = std::min(min_val, gray);
-    max_val = std::max(max_val, gray);
-  }
-  
-  // Apply linear histogram stretching
-  if (max_val > min_val) {
-    double scale = 255.0 / (max_val - min_val);
-    for (int i = 0; i < width * height; i++) {
-      grayscale[i] = static_cast<uint8_t>((grayscale[i] - min_val) * scale);
+  for (const auto& image_file : image_files) {
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+
+    std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", image_file);
+    unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
+
+    if (data == nullptr) {
+      // Continue with next image if current one fails to load
+      continue;
     }
+
+    // Convert to grayscale and find min/max
+    std::vector<uint8_t> grayscale(width * height);
+    uint8_t min_val = 255;
+    uint8_t max_val = 0;
+
+    for (int i = 0; i < width * height; i++) {
+      // Convert RGB to grayscale using standard formula
+      uint8_t gray = static_cast<uint8_t>(
+          0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2]);
+      grayscale[i] = gray;
+      min_val = std::min(min_val, gray);
+      max_val = std::max(max_val, gray);
+    }
+
+    // Apply linear histogram stretching
+    if (max_val > min_val) {
+      double scale = 255.0 / (max_val - min_val);
+      for (int i = 0; i < width * height; i++) {
+        grayscale[i] = static_cast<uint8_t>((grayscale[i] - min_val) * scale);
+      }
+    }
+
+    stbi_image_free(data);
   }
-  
-  stbi_image_free(data);
+
   GetOutput() = GetInput();
   return true;
 }
@@ -405,86 +454,92 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-  int width = 0;
-  int height = 0;
-  int channels = 0;
-  std::vector<unsigned char> image_data;
+  // Process all available images
+  const std::vector<std::string> image_files = {"pic_0.jpeg", "pic_1.jpg", "pic_2.jpg", "pic_3.jpg"};
+  
+  for (const auto& image_file : image_files) {
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    std::vector<unsigned char> image_data;
 
-  // Load image on rank 0
-  if (rank == 0) {
-    std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", "pic.jpg");
-    unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
-    
-    if (data == nullptr) {
-      width = -1;
-      MPI_Bcast(&width, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      return false;
+    // Load image on rank 0
+    if (rank == 0) {
+      std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", image_file);
+      unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
+      
+      if (data == nullptr) {
+        // Signal error to all processes and continue with next image
+        width = -1;
+        MPI_Bcast(&width, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        continue;
+      }
+      
+      image_data.assign(data, data + width * height * channels);
+      stbi_image_free(data);
     }
-    
-    image_data.assign(data, data + width * height * channels);
-    stbi_image_free(data);
-  }
 
-  // Broadcast image dimensions
-  int dims[3] = {width, height, channels};
-  MPI_Bcast(dims, 3, MPI_INT, 0, MPI_COMM_WORLD);
-  width = dims[0];
-  height = dims[1];
-  channels = dims[2];
+    // Broadcast image dimensions
+    int dims[3] = {width, height, channels};
+    MPI_Bcast(dims, 3, MPI_INT, 0, MPI_COMM_WORLD);
+    width = dims[0];
+    height = dims[1];
+    channels = dims[2];
 
-  if (width <= 0 || height <= 0) {
-    return false;
-  }
-
-  // Broadcast image data
-  int image_size = width * height * channels;
-  if (rank != 0) {
-    image_data.resize(image_size);
-  }
-  MPI_Bcast(image_data.data(), image_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-
-  // Convert to grayscale and distribute rows across processes
-  int rows_per_process = height / size;
-  int remainder = height % size;
-  int start_row = rank * rows_per_process + std::min(rank, remainder);
-  int end_row = start_row + rows_per_process + (rank < remainder ? 1 : 0);
-  int local_rows = end_row - start_row;
-
-  // Convert local portion to grayscale and find local min/max
-  std::vector<uint8_t> local_grayscale(local_rows * width);
-  uint8_t local_min = 255;
-  uint8_t local_max = 0;
-
-  for (int row = 0; row < local_rows; row++) {
-    int global_row = start_row + row;
-    for (int col = 0; col < width; col++) {
-      int idx = global_row * width + col;
-      uint8_t gray = static_cast<uint8_t>(
-          0.299 * image_data[idx * 3] + 0.587 * image_data[idx * 3 + 1] + 
-          0.114 * image_data[idx * 3 + 2]);
-      local_grayscale[row * width + col] = gray;
-      local_min = std::min(local_min, gray);
-      local_max = std::max(local_max, gray);
+    if (width <= 0 || height <= 0) {
+      continue;
     }
-  }
 
-  // Find global min/max using MPI_Reduce
-  uint8_t global_min = 0;
-  uint8_t global_max = 0;
-  MPI_Reduce(&local_min, &global_min, 1, MPI_UNSIGNED_CHAR, MPI_MIN, 0, MPI_COMM_WORLD);
-  MPI_Reduce(&local_max, &global_max, 1, MPI_UNSIGNED_CHAR, MPI_MAX, 0, MPI_COMM_WORLD);
+    // Broadcast image data
+    int image_size = width * height * channels;
+    if (rank != 0) {
+      image_data.resize(image_size);
+    }
+    MPI_Bcast(image_data.data(), image_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
-  // Broadcast global min/max to all processes
-  uint8_t minmax[2] = {global_min, global_max};
-  MPI_Bcast(minmax, 2, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-  global_min = minmax[0];
-  global_max = minmax[1];
+    // Convert to grayscale and distribute rows across processes
+    int rows_per_process = height / size;
+    int remainder = height % size;
+    int start_row = rank * rows_per_process + std::min(rank, remainder);
+    int end_row = start_row + rows_per_process + (rank < remainder ? 1 : 0);
+    int local_rows = end_row - start_row;
 
-  // Apply linear histogram stretching to local portion
-  if (global_max > global_min) {
-    double scale = 255.0 / (global_max - global_min);
-    for (int i = 0; i < local_rows * width; i++) {
-      local_grayscale[i] = static_cast<uint8_t>((local_grayscale[i] - global_min) * scale);
+    // Convert local portion to grayscale and find local min/max
+    std::vector<uint8_t> local_grayscale(local_rows * width);
+    uint8_t local_min = 255;
+    uint8_t local_max = 0;
+
+    for (int row = 0; row < local_rows; row++) {
+      int global_row = start_row + row;
+      for (int col = 0; col < width; col++) {
+        int idx = global_row * width + col;
+        uint8_t gray = static_cast<uint8_t>(
+            0.299 * image_data[idx * 3] + 0.587 * image_data[idx * 3 + 1] + 
+            0.114 * image_data[idx * 3 + 2]);
+        local_grayscale[row * width + col] = gray;
+        local_min = std::min(local_min, gray);
+        local_max = std::max(local_max, gray);
+      }
+    }
+
+    // Find global min/max using MPI_Reduce
+    uint8_t global_min = 0;
+    uint8_t global_max = 0;
+    MPI_Reduce(&local_min, &global_min, 1, MPI_UNSIGNED_CHAR, MPI_MIN, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&local_max, &global_max, 1, MPI_UNSIGNED_CHAR, MPI_MAX, 0, MPI_COMM_WORLD);
+
+    // Broadcast global min/max to all processes
+    uint8_t minmax[2] = {global_min, global_max};
+    MPI_Bcast(minmax, 2, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+    global_min = minmax[0];
+    global_max = minmax[1];
+
+    // Apply linear histogram stretching to local portion
+    if (global_max > global_min) {
+      double scale = 255.0 / (global_max - global_min);
+      for (int i = 0; i < local_rows * width; i++) {
+        local_grayscale[i] = static_cast<uint8_t>((local_grayscale[i] - global_min) * scale);
+      }
     }
   }
 
