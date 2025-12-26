@@ -41,28 +41,32 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     int height = 0;
     int channels = 0;
     std::vector<unsigned char> image_data;
+    int valid_image = 0;
 
     if (rank == 0) {
       std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", image_file);
       unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
 
       if (data == nullptr) {
-        width = -1;
-        height = -1;
-        channels = -1;
+        width = 0;
+        height = 0;
+        channels = 0;
+        valid_image = 0;
       } else {
         image_data.assign(data, data + width * height * channels);
         stbi_image_free(data);
+        valid_image = 1;
       }
     }
 
-    int dims[3] = {width, height, channels};
-    MPI_Bcast(dims, 3, MPI_INT, 0, MPI_COMM_WORLD);
+    int dims[4] = {width, height, channels, valid_image};
+    MPI_Bcast(dims, 4, MPI_INT, 0, MPI_COMM_WORLD);
     width = dims[0];
     height = dims[1];
     channels = dims[2];
+    valid_image = dims[3];
 
-    if (width <= 0 || height <= 0 || channels <= 0) {
+    if (valid_image == 0 || width <= 0 || height <= 0 || channels <= 0) {
       continue;
     }
 
@@ -70,6 +74,7 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     if (rank != 0) {
       image_data.resize(image_size);
     }
+    
     MPI_Bcast(image_data.data(), image_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
     const int rows_per_process = height / size;
@@ -78,9 +83,9 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     const int end_row = start_row + rows_per_process + (rank < remainder ? 1 : 0);
     const int local_rows = end_row - start_row;
 
-    uint8_t local_min = 255;
-    uint8_t local_max = 0;
-    std::vector<uint8_t> local_gray;
+    int local_min_int = 255;
+    int local_max_int = 0;
+    std::vector<unsigned char> local_gray;
 
     if (local_rows > 0) {
       local_gray.resize(local_rows * width);
@@ -90,26 +95,30 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
         for (int col = 0; col < width; col++) {
           const int idx = global_row * width + col;
           const int rgb_idx = idx * channels;
-          const uint8_t gray = static_cast<uint8_t>(0.299 * image_data[rgb_idx] + 0.587 * image_data[rgb_idx + 1] +
-                                                    0.114 * image_data[rgb_idx + 2]);
+          const unsigned char gray = static_cast<unsigned char>(
+              0.299 * image_data[rgb_idx] + 0.587 * image_data[rgb_idx + 1] + 0.114 * image_data[rgb_idx + 2]);
           local_gray[row * width + col] = gray;
-          local_min = std::min(local_min, gray);
-          local_max = std::max(local_max, gray);
+          const int gray_int = static_cast<int>(gray);
+          if (gray_int < local_min_int) local_min_int = gray_int;
+          if (gray_int > local_max_int) local_max_int = gray_int;
         }
       }
     }
 
-    uint8_t global_min = 0;
-    uint8_t global_max = 0;
-    MPI_Allreduce(&local_min, &global_min, 1, MPI_UNSIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
-    MPI_Allreduce(&local_max, &global_max, 1, MPI_UNSIGNED_CHAR, MPI_MAX, MPI_COMM_WORLD);
+    int global_min_int = 0;
+    int global_max_int = 0;
+    MPI_Allreduce(&local_min_int, &global_min_int, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_max_int, &global_max_int, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+    
+    const unsigned char global_min = static_cast<unsigned char>(global_min_int);
+    const unsigned char global_max = static_cast<unsigned char>(global_max_int);
 
     if (local_rows > 0 && global_max > global_min) {
       const double scale = 255.0 / static_cast<double>(global_max - global_min);
       for (int row = 0; row < local_rows; row++) {
         for (int col = 0; col < width; col++) {
-          const uint8_t gray = local_gray[row * width + col];
-          static_cast<void>(static_cast<uint8_t>((gray - global_min) * scale));
+          const unsigned char gray = local_gray[row * width + col];
+          static_cast<void>(static_cast<unsigned char>((gray - global_min) * scale));
         }
       }
     }
