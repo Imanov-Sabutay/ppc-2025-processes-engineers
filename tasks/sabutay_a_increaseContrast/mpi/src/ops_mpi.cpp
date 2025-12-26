@@ -126,3 +126,4 @@ bool SabutayAincreaseContrastMPI::PostProcessingImpl() {
 }
 
 }  // namespace sabutay_a_increaseContrast
+
