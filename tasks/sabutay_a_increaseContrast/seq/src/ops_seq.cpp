@@ -49,8 +49,8 @@ bool SabutayAincreaseContrastSEQ::RunImpl() {
 
     for (int i = 0; i < pixel_count; i++) {
       const int rgb_idx = i * channels;
-      const uint8_t gray = static_cast<uint8_t>(
-          0.299 * data[rgb_idx] + 0.587 * data[rgb_idx + 1] + 0.114 * data[rgb_idx + 2]);
+      const uint8_t gray =
+          static_cast<uint8_t>(0.299 * data[rgb_idx] + 0.587 * data[rgb_idx + 1] + 0.114 * data[rgb_idx + 2]);
       gray_values[i] = gray;
       min_val = std::min(min_val, gray);
       max_val = std::max(max_val, gray);

@@ -78,20 +78,24 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     const int end_row = start_row + rows_per_process + (rank < remainder ? 1 : 0);
     const int local_rows = end_row - start_row;
 
-    std::vector<uint8_t> local_gray(local_rows * width);
     uint8_t local_min = 255;
     uint8_t local_max = 0;
+    std::vector<uint8_t> local_gray;
 
-    for (int row = 0; row < local_rows; row++) {
-      const int global_row = start_row + row;
-      for (int col = 0; col < width; col++) {
-        const int idx = global_row * width + col;
-        const int rgb_idx = idx * channels;
-        const uint8_t gray = static_cast<uint8_t>(
-            0.299 * image_data[rgb_idx] + 0.587 * image_data[rgb_idx + 1] + 0.114 * image_data[rgb_idx + 2]);
-        local_gray[row * width + col] = gray;
-        local_min = std::min(local_min, gray);
-        local_max = std::max(local_max, gray);
+    if (local_rows > 0) {
+      local_gray.resize(local_rows * width);
+
+      for (int row = 0; row < local_rows; row++) {
+        const int global_row = start_row + row;
+        for (int col = 0; col < width; col++) {
+          const int idx = global_row * width + col;
+          const int rgb_idx = idx * channels;
+          const uint8_t gray = static_cast<uint8_t>(0.299 * image_data[rgb_idx] + 0.587 * image_data[rgb_idx + 1] +
+                                                    0.114 * image_data[rgb_idx + 2]);
+          local_gray[row * width + col] = gray;
+          local_min = std::min(local_min, gray);
+          local_max = std::max(local_max, gray);
+        }
       }
     }
 
@@ -100,7 +104,7 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     MPI_Allreduce(&local_min, &global_min, 1, MPI_UNSIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
     MPI_Allreduce(&local_max, &global_max, 1, MPI_UNSIGNED_CHAR, MPI_MAX, MPI_COMM_WORLD);
 
-    if (global_max > global_min) {
+    if (local_rows > 0 && global_max > global_min) {
       const double scale = 255.0 / static_cast<double>(global_max - global_min);
       for (int row = 0; row < local_rows; row++) {
         for (int col = 0; col < width; col++) {
@@ -111,6 +115,7 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     }
   }
 
+  MPI_Barrier(MPI_COMM_WORLD);
   GetOutput() = GetInput();
   return true;
 }
