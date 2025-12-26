@@ -29,7 +29,8 @@ TEST_P(SabutayAincreaseContrastPerfTest, RunPerfModes) {
 }
 
 const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, SabutayAincreaseContrastMPI, SabutayAincreaseContrastSEQ>(PPC_SETTINGS_sabutay_a_increaseContrast);
+    ppc::util::MakeAllPerfTasks<InType, SabutayAincreaseContrastMPI, SabutayAincreaseContrastSEQ>(
+        PPC_SETTINGS_sabutay_a_increaseContrast);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 
@@ -38,4 +39,3 @@ const auto kPerfTestName = SabutayAincreaseContrastPerfTest::CustomPerfTestName;
 INSTANTIATE_TEST_SUITE_P(RunModeTests, SabutayAincreaseContrastPerfTest, kGtestValues, kPerfTestName);
 
 }  // namespace sabutay_a_increaseContrast
-

@@ -71,9 +71,9 @@ TEST_P(SabutayAincreaseContrastFuncTests, MatmulFromPic) {
 
 const std::array<TestType, 3> kTestParam = {std::make_tuple(3, "3"), std::make_tuple(5, "5"), std::make_tuple(7, "7")};
 
-const auto kTestTasksList =
-    std::tuple_cat(ppc::util::AddFuncTask<SabutayAincreaseContrastMPI, InType>(kTestParam, PPC_SETTINGS_sabutay_a_increaseContrast),
-                   ppc::util::AddFuncTask<SabutayAincreaseContrastSEQ, InType>(kTestParam, PPC_SETTINGS_sabutay_a_increaseContrast));
+const auto kTestTasksList = std::tuple_cat(
+    ppc::util::AddFuncTask<SabutayAincreaseContrastMPI, InType>(kTestParam, PPC_SETTINGS_sabutay_a_increaseContrast),
+    ppc::util::AddFuncTask<SabutayAincreaseContrastSEQ, InType>(kTestParam, PPC_SETTINGS_sabutay_a_increaseContrast));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
@@ -84,4 +84,3 @@ INSTANTIATE_TEST_SUITE_P(PicMatrixTests, SabutayAincreaseContrastFuncTests, kGte
 }  // namespace
 
 }  // namespace sabutay_a_increaseContrast
-

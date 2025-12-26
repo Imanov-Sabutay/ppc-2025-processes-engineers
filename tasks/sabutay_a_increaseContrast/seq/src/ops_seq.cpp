@@ -72,4 +72,3 @@ bool SabutayAincreaseContrastSEQ::PostProcessingImpl() {
 }
 
 }  // namespace sabutay_a_increaseContrast
-

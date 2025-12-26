@@ -60,11 +60,11 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     height = dims[1];
     channels = dims[2];
 
-    if (width <= 0 || height <= 0) {
+    int image_size = width * height * channels;
+    if (width <= 0 || height <= 0 || image_size <= 0) {
       continue;
     }
 
-    int image_size = width * height * channels;
     if (rank != 0) {
       image_data.resize(image_size);
     }
@@ -72,7 +72,7 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
 
     int rows_per_process = height / size;
     int remainder = height % size;
-    int start_row = rank * rows_per_process + std::min(rank, remainder);
+    int start_row = rank * rows_per_process + (rank < remainder ? rank : remainder);
     int end_row = start_row + rows_per_process + (rank < remainder ? 1 : 0);
     int local_rows = end_row - start_row;
 
@@ -126,4 +126,3 @@ bool SabutayAincreaseContrastMPI::PostProcessingImpl() {
 }
 
 }  // namespace sabutay_a_increaseContrast
-
