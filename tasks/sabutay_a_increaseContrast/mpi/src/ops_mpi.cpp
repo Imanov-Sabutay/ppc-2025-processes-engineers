@@ -82,6 +82,7 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     uint8_t local_max = 0;
     std::vector<uint8_t> local_gray;
 
+<<<<<<< HEAD
     if (local_rows > 0) {
       local_gray.resize(local_rows * width);
 
@@ -96,6 +97,18 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
           local_min = std::min(local_min, gray);
           local_max = std::max(local_max, gray);
         }
+=======
+    for (int row = 0; row < local_rows; row++) {
+      const int global_row = start_row + row;
+      for (int col = 0; col < width; col++) {
+        const int idx = global_row * width + col;
+        const int rgb_idx = idx * channels;
+        const uint8_t gray = static_cast<uint8_t>(0.299 * image_data[rgb_idx] + 0.587 * image_data[rgb_idx + 1] +
+                                                  0.114 * image_data[rgb_idx + 2]);
+        local_gray[row * width + col] = gray;
+        local_min = std::min(local_min, gray);
+        local_max = std::max(local_max, gray);
+>>>>>>> 9a4100efd0b1d876f8eb732376e3c2246f009b2c
       }
     }
 
