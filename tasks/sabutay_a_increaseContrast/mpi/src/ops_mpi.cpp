@@ -48,6 +48,8 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
 
       if (data == nullptr) {
         width = -1;
+        height = -1;
+        channels = -1;
       } else {
         image_data.assign(data, data + width * height * channels);
         stbi_image_free(data);
@@ -60,31 +62,34 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     height = dims[1];
     channels = dims[2];
 
-    int image_size = width * height * channels;
-    if (width <= 0 || height <= 0 || image_size <= 0) {
+    if (width <= 0 || height <= 0 || channels <= 0) {
       continue;
     }
 
+    const int image_size = width * height * channels;
     if (rank != 0) {
       image_data.resize(image_size);
     }
     MPI_Bcast(image_data.data(), image_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
-    int rows_per_process = height / size;
-    int remainder = height % size;
-    int start_row = rank * rows_per_process + (rank < remainder ? rank : remainder);
-    int end_row = start_row + rows_per_process + (rank < remainder ? 1 : 0);
-    int local_rows = end_row - start_row;
+    const int rows_per_process = height / size;
+    const int remainder = height % size;
+    const int start_row = rank * rows_per_process + (rank < remainder ? rank : remainder);
+    const int end_row = start_row + rows_per_process + (rank < remainder ? 1 : 0);
+    const int local_rows = end_row - start_row;
 
+    std::vector<uint8_t> local_gray(local_rows * width);
     uint8_t local_min = 255;
     uint8_t local_max = 0;
 
     for (int row = 0; row < local_rows; row++) {
-      int global_row = start_row + row;
+      const int global_row = start_row + row;
       for (int col = 0; col < width; col++) {
-        int idx = global_row * width + col;
-        uint8_t gray = static_cast<uint8_t>(0.299 * image_data[idx * 3] + 0.587 * image_data[idx * 3 + 1] +
-                                            0.114 * image_data[idx * 3 + 2]);
+        const int idx = global_row * width + col;
+        const int rgb_idx = idx * channels;
+        const uint8_t gray = static_cast<uint8_t>(
+            0.299 * image_data[rgb_idx] + 0.587 * image_data[rgb_idx + 1] + 0.114 * image_data[rgb_idx + 2]);
+        local_gray[row * width + col] = gray;
         local_min = std::min(local_min, gray);
         local_max = std::max(local_max, gray);
       }
@@ -92,22 +97,14 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
 
     uint8_t global_min = 0;
     uint8_t global_max = 0;
-    MPI_Reduce(&local_min, &global_min, 1, MPI_UNSIGNED_CHAR, MPI_MIN, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&local_max, &global_max, 1, MPI_UNSIGNED_CHAR, MPI_MAX, 0, MPI_COMM_WORLD);
-
-    uint8_t minmax[2] = {global_min, global_max};
-    MPI_Bcast(minmax, 2, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-    global_min = minmax[0];
-    global_max = minmax[1];
+    MPI_Allreduce(&local_min, &global_min, 1, MPI_UNSIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_max, &global_max, 1, MPI_UNSIGNED_CHAR, MPI_MAX, MPI_COMM_WORLD);
 
     if (global_max > global_min) {
-      const double scale = 255.0 / (global_max - global_min);
+      const double scale = 255.0 / static_cast<double>(global_max - global_min);
       for (int row = 0; row < local_rows; row++) {
-        int global_row = start_row + row;
         for (int col = 0; col < width; col++) {
-          int idx = global_row * width + col;
-          uint8_t gray = static_cast<uint8_t>(0.299 * image_data[idx * 3] + 0.587 * image_data[idx * 3 + 1] +
-                                              0.114 * image_data[idx * 3 + 2]);
+          const uint8_t gray = local_gray[row * width + col];
           static_cast<void>(static_cast<uint8_t>((gray - global_min) * scale));
         }
       }
@@ -115,8 +112,6 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
   }
 
   GetOutput() = GetInput();
-
-  MPI_Barrier(MPI_COMM_WORLD);
   return true;
 }
 

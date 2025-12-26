@@ -41,20 +41,25 @@ bool SabutayAincreaseContrastSEQ::RunImpl() {
       continue;
     }
 
+    const int pixel_count = width * height;
+    std::vector<uint8_t> gray_values(pixel_count);
+
     uint8_t min_val = 255;
     uint8_t max_val = 0;
-    const int pixel_count = width * height;
 
     for (int i = 0; i < pixel_count; i++) {
-      uint8_t gray = static_cast<uint8_t>(0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2]);
+      const int rgb_idx = i * channels;
+      const uint8_t gray = static_cast<uint8_t>(
+          0.299 * data[rgb_idx] + 0.587 * data[rgb_idx + 1] + 0.114 * data[rgb_idx + 2]);
+      gray_values[i] = gray;
       min_val = std::min(min_val, gray);
       max_val = std::max(max_val, gray);
     }
 
     if (max_val > min_val) {
-      const double scale = 255.0 / (max_val - min_val);
+      const double scale = 255.0 / static_cast<double>(max_val - min_val);
       for (int i = 0; i < pixel_count; i++) {
-        uint8_t gray = static_cast<uint8_t>(0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2]);
+        const uint8_t gray = gray_values[i];
         static_cast<void>(static_cast<uint8_t>((gray - min_val) * scale));
       }
     }
