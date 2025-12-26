@@ -87,8 +87,8 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
       for (int col = 0; col < width; col++) {
         const int idx = global_row * width + col;
         const int rgb_idx = idx * channels;
-        const uint8_t gray = static_cast<uint8_t>(
-            0.299 * image_data[rgb_idx] + 0.587 * image_data[rgb_idx + 1] + 0.114 * image_data[rgb_idx + 2]);
+        const uint8_t gray = static_cast<uint8_t>(0.299 * image_data[rgb_idx] + 0.587 * image_data[rgb_idx + 1] +
+                                                  0.114 * image_data[rgb_idx + 2]);
         local_gray[row * width + col] = gray;
         local_min = std::min(local_min, gray);
         local_max = std::max(local_max, gray);
