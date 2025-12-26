@@ -74,7 +74,7 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     if (rank != 0) {
       image_data.resize(image_size);
     }
-    
+
     MPI_Bcast(image_data.data(), image_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
     const int rows_per_process = height / size;
@@ -99,8 +99,12 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
               0.299 * image_data[rgb_idx] + 0.587 * image_data[rgb_idx + 1] + 0.114 * image_data[rgb_idx + 2]);
           local_gray[row * width + col] = gray;
           const int gray_int = static_cast<int>(gray);
-          if (gray_int < local_min_int) local_min_int = gray_int;
-          if (gray_int > local_max_int) local_max_int = gray_int;
+          if (gray_int < local_min_int) {
+            local_min_int = gray_int;
+          }
+          if (gray_int > local_max_int) {
+            local_max_int = gray_int;
+          }
         }
       }
     }
@@ -109,7 +113,7 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     int global_max_int = 0;
     MPI_Allreduce(&local_min_int, &global_min_int, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
     MPI_Allreduce(&local_max_int, &global_max_int, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-    
+
     const unsigned char global_min = static_cast<unsigned char>(global_min_int);
     const unsigned char global_max = static_cast<unsigned char>(global_max_int);
 
