@@ -17,9 +17,13 @@ SabutayAincreaseContrastSEQ::SabutayAincreaseContrastSEQ(const InType &in) {
   GetOutput() = 0;
 }
 
-bool SabutayAincreaseContrastSEQ::ValidationImpl() { return (GetInput() >= 0) && (GetOutput() == 0); }
+bool SabutayAincreaseContrastSEQ::ValidationImpl() {
+  return (GetInput() >= 0) && (GetOutput() == 0);
+}
 
-bool SabutayAincreaseContrastSEQ::PreProcessingImpl() { return true; }
+bool SabutayAincreaseContrastSEQ::PreProcessingImpl() {
+  return true;
+}
 
 bool SabutayAincreaseContrastSEQ::RunImpl() {
   const std::vector<std::string> image_files = {"pic_0.jpeg", "pic_1.jpg", "pic_2.jpg", "pic_3.jpg"};
@@ -42,8 +46,7 @@ bool SabutayAincreaseContrastSEQ::RunImpl() {
 
     for (int i = 0; i < pixel_count; i++) {
       const int rgb_idx = i * channels;
-      const int gray =
-          static_cast<int>(0.299 * data[rgb_idx] + 0.587 * data[rgb_idx + 1] + 0.114 * data[rgb_idx + 2]);
+      const int gray = static_cast<int>(0.299 * data[rgb_idx] + 0.587 * data[rgb_idx + 1] + 0.114 * data[rgb_idx + 2]);
       min_val = std::min(min_val, gray);
       max_val = std::max(max_val, gray);
     }
