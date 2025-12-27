@@ -19,9 +19,13 @@ SabutayAincreaseContrastMPI::SabutayAincreaseContrastMPI(const InType &in) {
   GetOutput() = 0;
 }
 
-bool SabutayAincreaseContrastMPI::ValidationImpl() { return (GetInput() >= 0) && (GetOutput() == 0); }
+bool SabutayAincreaseContrastMPI::ValidationImpl() {
+  return (GetInput() >= 0) && (GetOutput() == 0);
+}
 
-bool SabutayAincreaseContrastMPI::PreProcessingImpl() { return true; }
+bool SabutayAincreaseContrastMPI::PreProcessingImpl() {
+  return true;
+}
 
 bool SabutayAincreaseContrastMPI::RunImpl() {
   int rank = 0;
@@ -116,10 +120,10 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
   }
 
   GetOutput() = GetInput();
-  
+
   // Critical: synchronize all processes before returning
   MPI_Barrier(MPI_COMM_WORLD);
-  
+
   return true;
 }
 
