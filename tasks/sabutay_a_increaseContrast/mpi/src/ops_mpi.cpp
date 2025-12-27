@@ -19,13 +19,9 @@ SabutayAincreaseContrastMPI::SabutayAincreaseContrastMPI(const InType &in) {
   GetOutput() = 0;
 }
 
-bool SabutayAincreaseContrastMPI::ValidationImpl() {
-  return (GetInput() >= 0) && (GetOutput() == 0);
-}
+bool SabutayAincreaseContrastMPI::ValidationImpl() { return (GetInput() >= 0) && (GetOutput() == 0); }
 
-bool SabutayAincreaseContrastMPI::PreProcessingImpl() {
-  return true;
-}
+bool SabutayAincreaseContrastMPI::PreProcessingImpl() { return true; }
 
 bool SabutayAincreaseContrastMPI::RunImpl() {
   int rank = 0;
@@ -41,6 +37,7 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     int channels = 0;
     std::vector<unsigned char> image_data;
 
+    // Only rank 0 loads the image
     if (rank == 0) {
       std::string abs_path = ppc::util::GetAbsoluteTaskPath("sabutay_a_increaseContrast", image_file);
       unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
@@ -62,16 +59,18 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     height = dims[1];
     channels = dims[2];
 
-    // Skip invalid images, but ensure all processes skip together
+    // All processes skip together if image is invalid
     if (width <= 0 || height <= 0 || channels <= 0) {
       continue;
     }
 
-    // Broadcast image data
+    // Prepare image data on non-root processes
     const int image_size = width * height * channels;
     if (rank != 0) {
       image_data.resize(image_size);
     }
+
+    // Broadcast image data to all processes
     MPI_Bcast(image_data.data(), image_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
     // Distribute rows among processes
@@ -80,7 +79,7 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
     const int start_row = rank * rows_per_process + std::min(rank, remainder);
     const int end_row = start_row + rows_per_process + (rank < remainder ? 1 : 0);
 
-    // Find local min/max
+    // Compute local min/max for assigned rows
     int local_min = 255;
     int local_max = 0;
 
@@ -95,7 +94,7 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
       }
     }
 
-    // Find global min/max
+    // Compute global min/max across all processes
     int global_min = 0;
     int global_max = 0;
     MPI_Allreduce(&local_min, &global_min, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
@@ -117,6 +116,10 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
   }
 
   GetOutput() = GetInput();
+  
+  // Critical: synchronize all processes before returning
+  MPI_Barrier(MPI_COMM_WORLD);
+  
   return true;
 }
 
