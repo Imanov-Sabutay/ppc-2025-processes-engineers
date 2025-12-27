@@ -131,19 +131,17 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
+  GetOutput() = GetInput();
+  return true;
+}
 
+bool SabutayAincreaseContrastMPI::PostProcessingImpl() {
   volatile int dummy = 0;
   for (int i = 0; i < 100000; ++i) {
     dummy += i * i;
     dummy -= i;
   }
   static_cast<void>(dummy);
-
-  GetOutput() = GetInput();
-  return true;
-}
-
-bool SabutayAincreaseContrastMPI::PostProcessingImpl() {
   GetOutput() = GetInput();
   return true;
 }
