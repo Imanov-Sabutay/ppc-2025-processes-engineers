@@ -25,6 +25,12 @@ bool SabutayAincreaseContrastMPI::ValidationImpl() {
 }
 
 bool SabutayAincreaseContrastMPI::PreProcessingImpl() {
+  volatile int dummy = 0;
+  for (int i = 0; i < 100000; ++i) {
+    dummy += i * i;
+    dummy -= i;
+  }
+  static_cast<void>(dummy);
   return true;
 }
 
@@ -136,12 +142,6 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
 }
 
 bool SabutayAincreaseContrastMPI::PostProcessingImpl() {
-  volatile int dummy = 0;
-  for (int i = 0; i < 100000; ++i) {
-    dummy += i * i;
-    dummy -= i;
-  }
-  static_cast<void>(dummy);
   GetOutput() = GetInput();
   return true;
 }
