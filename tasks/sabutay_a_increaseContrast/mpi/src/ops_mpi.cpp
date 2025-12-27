@@ -19,13 +19,9 @@ SabutayAincreaseContrastMPI::SabutayAincreaseContrastMPI(const InType &in) {
   GetOutput() = 0;
 }
 
-bool SabutayAincreaseContrastMPI::ValidationImpl() {
-  return (GetInput() >= 0) && (GetOutput() == 0);
-}
+bool SabutayAincreaseContrastMPI::ValidationImpl() { return (GetInput() >= 0) && (GetOutput() == 0); }
 
-bool SabutayAincreaseContrastMPI::PreProcessingImpl() {
-  return true;
-}
+bool SabutayAincreaseContrastMPI::PreProcessingImpl() { return true; }
 
 bool SabutayAincreaseContrastMPI::RunImpl() {
   int rank = 0;
@@ -55,27 +51,32 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
       }
     }
 
+    // Broadcast dimensions to all processes
     int dims[3] = {width, height, channels};
     MPI_Bcast(dims, 3, MPI_INT, 0, MPI_COMM_WORLD);
     width = dims[0];
     height = dims[1];
     channels = dims[2];
 
+    // Skip invalid images, but ensure all processes skip together
     if (width <= 0 || height <= 0 || channels <= 0) {
       continue;
     }
 
+    // Broadcast image data
     const int image_size = width * height * channels;
     if (rank != 0) {
       image_data.resize(image_size);
     }
     MPI_Bcast(image_data.data(), image_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
+    // Distribute rows among processes
     const int rows_per_process = height / size;
     const int remainder = height % size;
     const int start_row = rank * rows_per_process + std::min(rank, remainder);
     const int end_row = start_row + rows_per_process + (rank < remainder ? 1 : 0);
 
+    // Find local min/max
     int local_min = 255;
     int local_max = 0;
 
@@ -90,11 +91,13 @@ bool SabutayAincreaseContrastMPI::RunImpl() {
       }
     }
 
+    // Find global min/max
     int global_min = 0;
     int global_max = 0;
     MPI_Allreduce(&local_min, &global_min, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
     MPI_Allreduce(&local_max, &global_max, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
+    // Apply contrast enhancement
     if (global_max > global_min) {
       const double scale = 255.0 / static_cast<double>(global_max - global_min);
       for (int row = start_row; row < end_row; row++) {
