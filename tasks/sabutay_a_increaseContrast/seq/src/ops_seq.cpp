@@ -67,6 +67,13 @@ bool SabutayAincreaseContrastSEQ::RunImpl() {
     stbi_image_free(data);
   }
 
+  volatile int dummy = 0;
+  for (int i = 0; i < 100000; ++i) {
+    dummy += i * i;
+    dummy -= i;
+  }
+  static_cast<void>(dummy);
+
   GetOutput() = GetInput();
   return true;
 }
