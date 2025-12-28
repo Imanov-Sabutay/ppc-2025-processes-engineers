@@ -29,7 +29,8 @@ TEST_P(SabutayAcalculateSignChangesPerfTest, RunPerfModes) {
 }
 
 const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, SabutayAcalculateSignChangesMPI, SabutayAcalculateSignChangesSEQ>(PPC_SETTINGS_sabutay_a_calculateSignChanges);
+    ppc::util::MakeAllPerfTasks<InType, SabutayAcalculateSignChangesMPI, SabutayAcalculateSignChangesSEQ>(
+        PPC_SETTINGS_sabutay_a_calculateSignChanges);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 

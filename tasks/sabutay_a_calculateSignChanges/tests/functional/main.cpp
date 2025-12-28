@@ -71,13 +71,15 @@ TEST_P(SabutayAcalculateSignChangesFuncTests, MatmulFromPic) {
 
 const std::array<TestType, 3> kTestParam = {std::make_tuple(3, "3"), std::make_tuple(5, "5"), std::make_tuple(7, "7")};
 
-const auto kTestTasksList =
-    std::tuple_cat(ppc::util::AddFuncTask<SabutayAcalculateSignChangesMPI, InType>(kTestParam, PPC_SETTINGS_sabutay_a_calculateSignChanges),
-                   ppc::util::AddFuncTask<SabutayAcalculateSignChangesSEQ, InType>(kTestParam, PPC_SETTINGS_sabutay_a_calculateSignChanges));
+const auto kTestTasksList = std::tuple_cat(ppc::util::AddFuncTask<SabutayAcalculateSignChangesMPI, InType>(
+                                               kTestParam, PPC_SETTINGS_sabutay_a_calculateSignChanges),
+                                           ppc::util::AddFuncTask<SabutayAcalculateSignChangesSEQ, InType>(
+                                               kTestParam, PPC_SETTINGS_sabutay_a_calculateSignChanges));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
-const auto kPerfTestName = SabutayAcalculateSignChangesFuncTests::PrintFuncTestName<SabutayAcalculateSignChangesFuncTests>;
+const auto kPerfTestName =
+    SabutayAcalculateSignChangesFuncTests::PrintFuncTestName<SabutayAcalculateSignChangesFuncTests>;
 
 INSTANTIATE_TEST_SUITE_P(PicMatrixTests, SabutayAcalculateSignChangesFuncTests, kGtestValues, kPerfTestName);
 
